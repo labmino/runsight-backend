@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/labmino/runsight-backend/internal/database"
+	"github.com/labmino/runsight-backend/internal/handlers"
+	"github.com/labmino/runsight-backend/internal/middleware"
 )
 
 func main() {
@@ -33,12 +35,33 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	authHandler := handlers.NewAuthHandler(db)
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
 			"message": "RunSight API is running",
 		})
 	})
+
+	api := r.Group("/api")
+	{
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+		}
+
+		protected := api.Group("")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			auth := protected.Group("/auth")
+			{
+				auth.GET("/profile", authHandler.GetProfile)
+				auth.PUT("/profile", authHandler.UpdateProfile)
+			}
+		}
+	}
 
 
 	port := os.Getenv("PORT")
