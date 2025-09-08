@@ -36,6 +36,8 @@ func main() {
 	}))
 
 	authHandler := handlers.NewAuthHandler(db)
+	mobileHandler := handlers.NewMobileHandler(db)
+	iotHandler := handlers.NewIoTHandler(db)
 
 	api := r.Group("/api/v1")
 	{
@@ -57,6 +59,31 @@ func main() {
 		{
 			protectedAuth.GET("/profile", authHandler.GetProfile)
 			protectedAuth.PUT("/profile", authHandler.UpdateProfile)
+		}
+
+		mobile := api.Group("/mobile")
+		mobile.Use(middleware.AuthMiddleware())
+		{
+			mobile.POST("/pairing/request", mobileHandler.RequestPairingCode)
+			mobile.GET("/pairing/:session_id/status", mobileHandler.CheckPairingStatus)
+
+			mobile.GET("/devices", mobileHandler.GetDevices)
+			mobile.DELETE("/devices/:device_id", mobileHandler.RemoveDevice)
+		}
+
+		iot := api.Group("/iot")
+		{
+			iot.POST("/pairing/verify", iotHandler.VerifyPairingCode)
+
+			iotProtected := iot.Group("")
+			iotProtected.Use(middleware.DeviceAuthMiddleware(db))
+			{
+				iotProtected.POST("/runs/upload", iotHandler.UploadRun)
+				iotProtected.POST("/runs/batch", iotHandler.BatchUploadRuns)
+
+				iotProtected.POST("/devices/status", iotHandler.UpdateDeviceStatus)
+				iotProtected.GET("/devices/config", iotHandler.GetDeviceConfig)
+			}
 		}
 	}
 
