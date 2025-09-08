@@ -23,10 +23,8 @@ func SetupTestDB() (*gorm.DB, func()) {
 		panic("failed to connect to test database")
 	}
 
-	// Enable foreign keys for SQLite
 	db.Exec("PRAGMA foreign_keys = ON")
 
-	// Use test-specific models for SQLite compatibility
 	err = db.AutoMigrate(&TestUser{})
 	if err != nil {
 		panic("failed to migrate TestUser model: " + err.Error())

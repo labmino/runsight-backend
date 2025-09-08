@@ -31,7 +31,6 @@ func (suite *MobileHandlerTestSuite) SetupSuite() {
 	suite.handler = handlers.NewMobileHandler(db)
 	suite.router = gin.New()
 	
-	// Setup routes
 	mobile := suite.router.Group("/mobile")
 	mobile.Use(suite.mockAuthMiddleware())
 	{
@@ -56,7 +55,6 @@ func (suite *MobileHandlerTestSuite) SetupTest() {
 
 func (suite *MobileHandlerTestSuite) mockAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Mock user authentication
 		testUserID := uuid.New()
 		c.Set("user_id", testUserID)
 		c.Set("user_email", "test@example.com")
@@ -65,7 +63,6 @@ func (suite *MobileHandlerTestSuite) mockAuthMiddleware() gin.HandlerFunc {
 }
 
 func (suite *MobileHandlerTestSuite) TestListRuns() {
-	// Create test data
 	user := testhelpers.CreateTestUser(suite.handler.DB(), "test@example.com")
 	device := testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE")
 	testhelpers.CreateTestRun(suite.handler.DB(), user.ID, device.DeviceID)
@@ -75,7 +72,6 @@ func (suite *MobileHandlerTestSuite) TestListRuns() {
 		c.Next()
 	})
 
-	// Test successful list
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/mobile/runs?page=1&limit=10", nil)
 	suite.router.ServeHTTP(w, req)
@@ -89,19 +85,16 @@ func (suite *MobileHandlerTestSuite) TestListRuns() {
 }
 
 func (suite *MobileHandlerTestSuite) TestGetRun() {
-	// Create test data
 	user := testhelpers.CreateTestUser(suite.handler.DB(), "test@example.com")
 	device := testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE")
 	run := testhelpers.CreateTestRun(suite.handler.DB(), user.ID, device.DeviceID)
 	testhelpers.CreateTestAIMetrics(suite.handler.DB(), run.ID)
 
-	// Mock auth middleware for this test
 	suite.router.Use(func(c *gin.Context) {
 		c.Set("user_id", user.ID)
 		c.Next()
 	})
 
-	// Test successful get
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/mobile/runs/%s", run.ID), nil)
 	suite.router.ServeHTTP(w, req)
@@ -134,7 +127,6 @@ func (suite *MobileHandlerTestSuite) TestGetRunNotFound() {
 }
 
 func (suite *MobileHandlerTestSuite) TestUpdateRunNotes() {
-	// Create test data
 	user := testhelpers.CreateTestUser(suite.handler.DB(), "test@example.com")
 	device := testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE")
 	run := testhelpers.CreateTestRun(suite.handler.DB(), user.ID, device.DeviceID)
@@ -144,7 +136,6 @@ func (suite *MobileHandlerTestSuite) TestUpdateRunNotes() {
 		c.Next()
 	})
 
-	// Test successful update
 	updateData := map[string]interface{}{
 		"title": "Updated Title",
 		"notes": "Updated notes",
@@ -169,7 +160,6 @@ func (suite *MobileHandlerTestSuite) TestUpdateRunNotes() {
 }
 
 func (suite *MobileHandlerTestSuite) TestGetStats() {
-	// Create test data
 	user := testhelpers.CreateTestUser(suite.handler.DB(), "test@example.com")
 	device := testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE")
 	testhelpers.CreateTestRun(suite.handler.DB(), user.ID, device.DeviceID)
@@ -180,7 +170,6 @@ func (suite *MobileHandlerTestSuite) TestGetStats() {
 		c.Next()
 	})
 
-	// Test successful stats retrieval
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/mobile/stats", nil)
 	suite.router.ServeHTTP(w, req)
@@ -198,7 +187,6 @@ func (suite *MobileHandlerTestSuite) TestGetStats() {
 }
 
 func (suite *MobileHandlerTestSuite) TestGetDevices() {
-	// Create test data
 	user := testhelpers.CreateTestUser(suite.handler.DB(), "test@example.com")
 	testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE_1")
 	testhelpers.CreateTestDevice(suite.handler.DB(), user.ID, "TEST_DEVICE_2")

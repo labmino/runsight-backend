@@ -23,7 +23,6 @@ func NewMonitoringHandler(db *gorm.DB) *MonitoringHandler {
 	}
 }
 
-// Health endpoint for basic health checks
 func (h *MonitoringHandler) Health(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, "RunSight API is running", gin.H{
 		"status": "ok",
@@ -31,9 +30,7 @@ func (h *MonitoringHandler) Health(c *gin.Context) {
 	})
 }
 
-// Detailed health check endpoint
 func (h *MonitoringHandler) HealthDetailed(c *gin.Context) {
-	// Check database connectivity
 	sqlDB, err := h.db.DB()
 	dbStatus := "ok"
 	if err != nil {
@@ -42,7 +39,6 @@ func (h *MonitoringHandler) HealthDetailed(c *gin.Context) {
 		dbStatus = "error: " + err.Error()
 	}
 
-	// Get database stats
 	var dbStats map[string]interface{}
 	if sqlDB != nil {
 		stats := sqlDB.Stats()
@@ -58,7 +54,6 @@ func (h *MonitoringHandler) HealthDetailed(c *gin.Context) {
 		}
 	}
 
-	// Get memory stats
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -66,7 +61,7 @@ func (h *MonitoringHandler) HealthDetailed(c *gin.Context) {
 		"status":    "ok",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"uptime":    time.Since(h.startTime).String(),
-		"version":   "1.0.0", // You can make this dynamic
+		"version":   "1.0.0",
 		"database": gin.H{
 			"status": dbStatus,
 			"stats":  dbStats,
@@ -92,11 +87,7 @@ func (h *MonitoringHandler) HealthDetailed(c *gin.Context) {
 	utils.SuccessResponse(c, statusCode, "Detailed health status", response)
 }
 
-// Readiness endpoint for Kubernetes readiness probe
-func (h *MonitoringHandler) Ready(c *gin.Context) {
-	// Check if the application is ready to serve requests
-	// This includes database connectivity and any other critical dependencies
-	
+func (h *MonitoringHandler) Ready(c *gin.Context) {	
 	sqlDB, err := h.db.DB()
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Database connection failed", err.Error())
@@ -114,11 +105,7 @@ func (h *MonitoringHandler) Ready(c *gin.Context) {
 	})
 }
 
-// Liveness endpoint for Kubernetes liveness probe
-func (h *MonitoringHandler) Live(c *gin.Context) {
-	// Check if the application is alive (basic process health)
-	// This should be a lightweight check
-	
+func (h *MonitoringHandler) Live(c *gin.Context) {	
 	utils.SuccessResponse(c, http.StatusOK, "Service is alive", gin.H{
 		"status": "alive",
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -126,20 +113,16 @@ func (h *MonitoringHandler) Live(c *gin.Context) {
 	})
 }
 
-// Metrics endpoint for basic application metrics
 func (h *MonitoringHandler) Metrics(c *gin.Context) {
-	// Get database record counts
 	var userCount, deviceCount, runCount int64
 	
 	h.db.Model(&struct{ ID string `gorm:"primaryKey"`}{}).Table("users").Count(&userCount)
 	h.db.Model(&struct{ ID string `gorm:"primaryKey"`}{}).Table("devices").Count(&deviceCount)
 	h.db.Model(&struct{ ID string `gorm:"primaryKey"`}{}).Table("runs").Count(&runCount)
 
-	// Get memory stats
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	// Get database connection stats
 	var dbConnStats map[string]interface{}
 	if sqlDB, err := h.db.DB(); err == nil {
 		stats := sqlDB.Stats()

@@ -23,6 +23,7 @@ func NewPairingService(db *gorm.DB) *PairingService {
 func (s *PairingService) CreatePairingSession(userID uuid.UUID) (*models.PairingResponse, error) {
 	code := utils.GeneratePairingCode()
 	
+	// Ensure pairing code is unique among active sessions
 	for {
 		var existing models.PairingSession
 		err := s.db.Where("code = ? AND status = ? AND expires_at > ?", 

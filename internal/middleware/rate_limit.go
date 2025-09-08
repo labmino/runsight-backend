@@ -12,7 +12,6 @@ import (
 	"github.com/labmino/runsight-backend/internal/utils"
 )
 
-// RateLimiter holds the rate limiters for different clients
 type RateLimiter struct {
 	limiters map[string]*rate.Limiter
 	mu       sync.RWMutex
@@ -20,7 +19,6 @@ type RateLimiter struct {
 	burst    int
 }
 
-// NewRateLimiter creates a new rate limiter
 func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 	return &RateLimiter{
 		limiters: make(map[string]*rate.Limiter),
@@ -29,7 +27,6 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 	}
 }
 
-// GetLimiter returns a rate limiter for the given key (typically IP address)
 func (rl *RateLimiter) GetLimiter(key string) *rate.Limiter {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -43,14 +40,12 @@ func (rl *RateLimiter) GetLimiter(key string) *rate.Limiter {
 	return limiter
 }
 
-// CleanupOldLimiters removes unused limiters periodically
 func (rl *RateLimiter) CleanupOldLimiters() {
 	ticker := time.NewTicker(time.Minute * 5)
 	go func() {
 		for range ticker.C {
 			rl.mu.Lock()
 			for key, limiter := range rl.limiters {
-				// Remove limiters that haven't been used recently
 				if limiter.Tokens() == float64(rl.burst) {
 					delete(rl.limiters, key)
 				}
@@ -60,7 +55,6 @@ func (rl *RateLimiter) CleanupOldLimiters() {
 	}()
 }
 
-// RateLimitMiddleware creates a rate limiting middleware
 func RateLimitMiddleware(requestsPerSecond int, burstSize int) gin.HandlerFunc {
 	limiter := NewRateLimiter(rate.Limit(requestsPerSecond), burstSize)
 	limiter.CleanupOldLimiters()
@@ -91,11 +85,9 @@ func RateLimitMiddleware(requestsPerSecond int, burstSize int) gin.HandlerFunc {
 	}
 }
 
-// StrictRateLimitMiddleware for sensitive endpoints like auth
 func StrictRateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
-	// Convert to per-second rate with small burst
 	requestsPerSecond := float64(requestsPerMinute) / 60.0
-	limiter := NewRateLimiter(rate.Limit(requestsPerSecond), 2) // Small burst for strict endpoints
+	limiter := NewRateLimiter(rate.Limit(requestsPerSecond), 2)
 	limiter.CleanupOldLimiters()
 
 	return func(c *gin.Context) {
@@ -114,7 +106,7 @@ func StrictRateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
 
 			utils.ErrorResponse(c, http.StatusTooManyRequests, "Rate limit exceeded for sensitive endpoint", gin.H{
 				"error_code": "ERR_STRICT_RATE_LIMIT",
-				"retry_after": "120", // seconds
+				"retry_after": "120",
 			})
 			c.Abort()
 			return

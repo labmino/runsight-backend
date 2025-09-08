@@ -20,79 +20,64 @@ import (
 )
 
 func main() {
-	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: .env file not found")
 	}
 
-	// Initialize structured logging
 	utils.InitLogger()
 	defer utils.Sync()
 
 	utils.Info("Starting RunSight API server", zap.String("version", "1.0.0"))
 
-	// Connect to database with retries
 	db, err := database.Connect()
 	if err != nil {
 		utils.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
-	// Run database migrations
 	if err := database.Migrate(db); err != nil {
 		utils.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
 	utils.Info("Database connected and migrations completed")
 
-	// Initialize Gin
 	if os.Getenv("GIN_MODE") == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 
-	// Recovery middleware
 	r.Use(gin.Recovery())
 
-	// Request ID middleware (must be first)
 	r.Use(middleware.RequestIDMiddleware())
 
-	// Structured logging middleware
 	r.Use(middleware.LoggingMiddleware())
 
-	// Request size limit (still needed for mobile apps)
-	r.Use(middleware.MaxRequestSize(10 * 1024 * 1024)) // 10MB max
+	// Set max request size to 10MB
+	r.Use(middleware.MaxRequestSize(10 * 1024 * 1024))
 
-	// Note: CORS not needed for mobile apps, only for web browsers
+	// Global rate limit allows 100 requests per burst and 200 per window
+	r.Use(middleware.RateLimitMiddleware(100, 200))
 
-	// Rate limiting
-	r.Use(middleware.RateLimitMiddleware(100, 200)) // 100 req/sec, burst 200
-
-	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(db)
 	mobileHandler := handlers.NewMobileHandler(db)
 	iotHandler := handlers.NewIoTHandler(db)
 	monitoringHandler := handlers.NewMonitoringHandler(db)
 
-	// API routes
 	api := r.Group("/api/v1")
 	{
-		// Health and monitoring endpoints
 		api.GET("/health", monitoringHandler.Health)
 		api.GET("/health/detailed", monitoringHandler.HealthDetailed)
 		api.GET("/ready", monitoringHandler.Ready)
 		api.GET("/live", monitoringHandler.Live)
 		api.GET("/metrics", monitoringHandler.Metrics)
 
-		// Authentication endpoints with strict rate limiting
 		auth := api.Group("/auth")
-		auth.Use(middleware.StrictRateLimitMiddleware(20)) // 20 requests per minute
+		auth.Use(middleware.StrictRateLimitMiddleware(20))
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 		}
 
-		// Protected auth endpoints
 		protectedAuth := api.Group("/auth")
 		protectedAuth.Use(middleware.AuthMiddleware())
 		{
@@ -100,36 +85,29 @@ func main() {
 			protectedAuth.PUT("/profile", authHandler.UpdateProfile)
 		}
 
-		// Mobile app endpoints
 		mobile := api.Group("/mobile")
 		mobile.Use(middleware.AuthMiddleware())
 		{
-			// Pairing endpoints with stricter rate limiting
 			pairing := mobile.Group("/pairing")
-			pairing.Use(middleware.StrictRateLimitMiddleware(20)) // 20 requests per minute for pairing (allows polling every 5s)
+			pairing.Use(middleware.StrictRateLimitMiddleware(20))
 			{
 				pairing.POST("/request", mobileHandler.RequestPairingCode)
 				pairing.GET("/:session_id/status", mobileHandler.CheckPairingStatus)
 			}
 
-			// Device management
 			mobile.GET("/devices", mobileHandler.GetDevices)
 			mobile.DELETE("/devices/:device_id", mobileHandler.RemoveDevice)
 
-			// Run management
 			mobile.GET("/runs", mobileHandler.ListRuns)
 			mobile.GET("/runs/:run_id", mobileHandler.GetRun)
 			mobile.PATCH("/runs/:run_id", mobileHandler.UpdateRunNotes)
 			mobile.GET("/stats", mobileHandler.GetStats)
 		}
 
-		// IoT device endpoints
 		iot := api.Group("/iot")
 		{
-			// Pairing verification with strict rate limiting
 			iot.POST("/pairing/verify", middleware.StrictRateLimitMiddleware(5), iotHandler.VerifyPairingCode)
 
-			// Protected IoT endpoints
 			iotProtected := iot.Group("")
 			iotProtected.Use(middleware.DeviceAuthMiddleware(db))
 			{
@@ -141,13 +119,11 @@ func main() {
 		}
 	}
 
-	// Get port from environment
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Parse timeouts from environment
 	readTimeout := 30 * time.Second
 	writeTimeout := 30 * time.Second
 	idleTimeout := 120 * time.Second
@@ -164,7 +140,6 @@ func main() {
 		}
 	}
 
-	// Create HTTP server with timeouts
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,
@@ -173,7 +148,6 @@ func main() {
 		IdleTimeout:  idleTimeout,
 	}
 
-	// Start server in a goroutine
 	go func() {
 		utils.Info("Starting HTTP server", 
 			zap.String("port", port),
@@ -187,14 +161,13 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal for graceful shutdown
+	// Graceful shutdown captures SIGINT and SIGTERM and allows 30s for cleanup
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	utils.Info("Shutting down server...")
 
-	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

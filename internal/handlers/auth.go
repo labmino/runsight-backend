@@ -35,6 +35,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	// Check if user already exists to prevent duplicate registrations
 	var existingUser models.User
 	if err := h.db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 		utils.ErrorResponse(c, http.StatusConflict, "User already exists", "Email is already registered")
@@ -88,6 +89,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Use constant-time password comparison to prevent timing attacks
 	if err := user.CheckPassword(req.Password); err != nil {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials", "Email or password is incorrect")
 		return

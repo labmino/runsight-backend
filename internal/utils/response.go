@@ -76,7 +76,6 @@ func ValidationErrorResponse(c *gin.Context, err error) {
 	})
 }
 
-// GenerateRequestID creates a unique request identifier
 func GenerateRequestID() string {
 	bytes := make([]byte, 8)
 	rand.Read(bytes)

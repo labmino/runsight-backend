@@ -15,6 +15,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// JWT tokens expire after 24 hours for security
 const AccessTokenExpiry = 24 * time.Hour
 
 func GenerateJWT(userID uuid.UUID, email string) (string, error) {

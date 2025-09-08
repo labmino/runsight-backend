@@ -29,7 +29,6 @@ func (suite *APITestSuite) SetupSuite() {
 	suite.db = db
 	suite.cleanup = cleanup
 
-	// Setup router
 	suite.router = gin.New()
 	
 	authHandler := handlers.NewAuthHandler(db)
@@ -121,7 +120,6 @@ func (suite *APITestSuite) TestUserRegistration() {
 }
 
 func (suite *APITestSuite) TestUserLogin() {
-	// First register a user
 	userData := map[string]interface{}{
 		"full_name":        "Jane Doe",
 		"email":            "jane@example.com",
@@ -138,7 +136,6 @@ func (suite *APITestSuite) TestUserLogin() {
 
 	assert.Equal(suite.T(), http.StatusCreated, w.Code)
 
-	// Now test login
 	loginData := map[string]interface{}{
 		"email":    "jane@example.com",
 		"password": "password123",
@@ -163,9 +160,9 @@ func (suite *APITestSuite) TestUserLogin() {
 
 func (suite *APITestSuite) TestInvalidRegistration() {
 	userData := map[string]interface{}{
-		"full_name": "", // Invalid - empty name
-		"email":     "invalid-email", // Invalid email format
-		"password":  "123", // Too short
+		"full_name": "",
+		"email":     "invalid-email",
+		"password":  "123",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -178,7 +175,6 @@ func (suite *APITestSuite) TestInvalidRegistration() {
 }
 
 func (suite *APITestSuite) TestUnauthorizedEndpoints() {
-	// Test accessing protected endpoint without token
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/mobile/runs", nil)
 	suite.router.ServeHTTP(w, req)

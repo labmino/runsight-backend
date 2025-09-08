@@ -97,6 +97,7 @@ func (h *IoTHandler) UploadRun(c *gin.Context) {
 		return
 	}
 
+	// Idempotency check: prevent duplicate runs with same session_id
 	var existingRun models.Run
 	err := h.db.Where("session_id = ?", req.SessionID).First(&existingRun).Error
 	if err == nil {
@@ -136,6 +137,7 @@ func (h *IoTHandler) UploadRun(c *gin.Context) {
 		EndLongitude:    req.RunData.EndLongitude,
 	}
 
+	// Use transaction to ensure run and AI metrics are saved atomically
 	tx := h.db.Begin()
 	if tx.Error != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to start transaction", tx.Error.Error())
@@ -217,6 +219,7 @@ func (h *IoTHandler) BatchUploadRuns(c *gin.Context) {
 	var results []gin.H
 	var successCount, skipCount, errorCount int
 
+	// Process each run individually; failures don't stop the entire batch
 	for _, runReq := range req.Runs {
 		var existingRun models.Run
 		err := h.db.Where("session_id = ?", runReq.SessionID).First(&existingRun).Error

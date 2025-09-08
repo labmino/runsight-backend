@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Test-specific models that are SQLite compatible
 type TestUser struct {
 	ID           string    `json:"id" gorm:"primary_key"`
 	FullName     string    `json:"full_name" gorm:"not null"`

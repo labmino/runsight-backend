@@ -12,25 +12,18 @@ import (
 	"github.com/labmino/runsight-backend/internal/utils"
 )
 
-// SecurityHeaders adds security headers to responses
 func SecurityHeaders() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Prevent clickjacking
 		c.Header("X-Frame-Options", "DENY")
 		
-		// Prevent MIME type sniffing
 		c.Header("X-Content-Type-Options", "nosniff")
 		
-		// XSS Protection
 		c.Header("X-XSS-Protection", "1; mode=block")
 		
-		// Referrer Policy
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 		
-		// Content Security Policy
 		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';")
 		
-		// HSTS (only in production with HTTPS)
 		if c.Request.TLS != nil {
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
@@ -39,9 +32,7 @@ func SecurityHeaders() gin.HandlerFunc {
 	}
 }
 
-// InputSanitization middleware to sanitize input data
 func InputSanitization() gin.HandlerFunc {
-	// Common patterns for malicious input
 	var (
 		sqlInjectionPattern = regexp.MustCompile(`(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|vbscript|onload|onerror|onclick)`)
 		xssPattern         = regexp.MustCompile(`(?i)(<script|<iframe|<object|<embed|<link|<meta|javascript:|vbscript:|onload|onerror|onclick|onmouseover)`)
@@ -51,7 +42,6 @@ func InputSanitization() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := c.GetString("RequestID")
 		
-		// Check query parameters
 		for key, values := range c.Request.URL.Query() {
 			for _, value := range values {
 				if containsMaliciousInput(value, sqlInjectionPattern, xssPattern, pathTraversalPattern) {
@@ -72,7 +62,6 @@ func InputSanitization() gin.HandlerFunc {
 			}
 		}
 
-		// Check path parameters
 		path := c.Request.URL.Path
 		if containsMaliciousInput(path, pathTraversalPattern) {
 			utils.Warn("Malicious input detected in path",
@@ -92,7 +81,6 @@ func InputSanitization() gin.HandlerFunc {
 	}
 }
 
-// containsMaliciousInput checks if input contains malicious patterns
 func containsMaliciousInput(input string, patterns ...*regexp.Regexp) bool {
 	for _, pattern := range patterns {
 		if pattern.MatchString(input) {
@@ -102,21 +90,16 @@ func containsMaliciousInput(input string, patterns ...*regexp.Regexp) bool {
 	return false
 }
 
-// SanitizeString removes potentially dangerous characters from strings
 func SanitizeString(input string) string {
-	// HTML encode to prevent XSS
 	sanitized := html.EscapeString(input)
 	
-	// Remove null bytes
 	sanitized = strings.ReplaceAll(sanitized, "\x00", "")
 	
-	// Trim whitespace
 	sanitized = strings.TrimSpace(sanitized)
 	
 	return sanitized
 }
 
-// ValidateContentType ensures requests have proper content types
 func ValidateContentType(allowedTypes ...string) gin.HandlerFunc {
 	allowedMap := make(map[string]bool)
 	for _, contentType := range allowedTypes {
@@ -127,7 +110,6 @@ func ValidateContentType(allowedTypes ...string) gin.HandlerFunc {
 		if c.Request.Method == "POST" || c.Request.Method == "PUT" || c.Request.Method == "PATCH" {
 			contentType := c.GetHeader("Content-Type")
 			
-			// Extract base content type (ignore charset, boundary, etc.)
 			if idx := strings.Index(contentType, ";"); idx != -1 {
 				contentType = contentType[:idx]
 			}
@@ -155,7 +137,6 @@ func ValidateContentType(allowedTypes ...string) gin.HandlerFunc {
 	}
 }
 
-// MaxRequestSize limits the size of request bodies
 func MaxRequestSize(maxSize int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.ContentLength > maxSize {
@@ -176,7 +157,6 @@ func MaxRequestSize(maxSize int64) gin.HandlerFunc {
 			return
 		}
 		
-		// Set max bytes for request body reader
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
 		
 		c.Next()

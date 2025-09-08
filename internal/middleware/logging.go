@@ -15,7 +15,6 @@ func LoggingMiddleware() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 
-		// Get or set request ID
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = c.GetString("RequestID")
@@ -24,10 +23,8 @@ func LoggingMiddleware() gin.HandlerFunc {
 			requestID = "unknown"
 		}
 
-		// Process request
 		c.Next()
 
-		// Calculate latency
 		latency := time.Since(start)
 		clientIP := c.ClientIP()
 		method := c.Request.Method
@@ -39,7 +36,6 @@ func LoggingMiddleware() gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
-		// Log the request
 		fields := []zap.Field{
 			zap.String("request_id", requestID),
 			zap.String("method", method),
@@ -51,7 +47,6 @@ func LoggingMiddleware() gin.HandlerFunc {
 			zap.String("user_agent", userAgent),
 		}
 
-		// Add user information if available
 		if userID, exists := c.Get("user_id"); exists {
 			fields = append(fields, zap.Any("user_id", userID))
 		}
@@ -60,17 +55,14 @@ func LoggingMiddleware() gin.HandlerFunc {
 			fields = append(fields, zap.String("user_email", userEmail.(string)))
 		}
 
-		// Add device information if available
 		if _, exists := c.Get("device"); exists {
 			fields = append(fields, zap.String("device_id", "masked"))
 		}
 
-		// Add error information if available
 		if len(c.Errors) > 0 {
 			fields = append(fields, zap.String("errors", c.Errors.String()))
 		}
 
-		// Log based on status code
 		if statusCode >= 500 {
 			utils.Error("HTTP Request", fields...)
 		} else if statusCode >= 400 {
