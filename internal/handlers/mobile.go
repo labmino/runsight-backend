@@ -29,6 +29,10 @@ func NewMobileHandler(db *gorm.DB) *MobileHandler {
 	}
 }
 
+func (h *MobileHandler) DB() *gorm.DB {
+	return h.db
+}
+
 func (h *MobileHandler) RequestPairingCode(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
