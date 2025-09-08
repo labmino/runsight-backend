@@ -69,6 +69,11 @@ func main() {
 
 			mobile.GET("/devices", mobileHandler.GetDevices)
 			mobile.DELETE("/devices/:device_id", mobileHandler.RemoveDevice)
+
+			mobile.GET("/runs", mobileHandler.ListRuns)
+			mobile.GET("/runs/:run_id", mobileHandler.GetRun)
+			mobile.PATCH("/runs/:run_id", mobileHandler.UpdateRunNotes)
+			mobile.GET("/stats", mobileHandler.GetStats)
 		}
 
 		iot := api.Group("/iot")
