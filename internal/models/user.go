@@ -3,12 +3,13 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID           int64     `json:"id" gorm:"primaryKey"`
+	ID           uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	FullName     string    `json:"full_name" gorm:"type:varchar(100);not null" validate:"required,min=2,max=100"`
 	Email        string    `json:"email" gorm:"type:varchar(100);uniqueIndex;not null" validate:"required,email,max=100"`
 	Phone        string    `json:"phone,omitempty" gorm:"type:varchar(20)" validate:"omitempty,min=10,max=20"`
@@ -51,6 +52,9 @@ func (u *User) CheckPassword(password string) error {
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.ID == uuid.Nil {
+		u.ID = uuid.New()
+	}
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 	return nil
