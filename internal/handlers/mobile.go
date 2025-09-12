@@ -344,6 +344,54 @@ func (h *MobileHandler) GetRun(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, "Run retrieved successfully", response)
 }
 
+func (h *MobileHandler) GetRunWaypoints(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "User ID not found")
+		return
+	}
+
+	uid, ok := userID.(uuid.UUID)
+	if !ok {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Invalid user ID", "User ID type assertion failed")
+		return
+	}
+
+	runIDParam := c.Param("run_id")
+	if runIDParam == "" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Run ID required", "run_id parameter is missing")
+		return
+	}
+
+	runID, err := uuid.Parse(runIDParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid run ID", "run_id must be a valid UUID")
+		return
+	}
+
+	var run models.Run
+	err = h.db.Select("route_data").Where("id = ? AND user_id = ?", runID, uid).First(&run).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.ErrorResponse(c, http.StatusNotFound, "Run not found", "Run not found or access denied")
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Database error", err.Error())
+		return
+	}
+
+	if run.RouteData == nil {
+		utils.SuccessResponse(c, http.StatusOK, "No waypoints available", gin.H{
+			"waypoints": []interface{}{},
+		})
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Waypoints retrieved successfully", gin.H{
+		"route_data": *run.RouteData,
+	})
+}
+
 func (h *MobileHandler) GetStats(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

@@ -100,6 +100,7 @@ func main() {
 
 			mobile.GET("/runs", mobileHandler.ListRuns)
 			mobile.GET("/runs/:run_id", mobileHandler.GetRun)
+			mobile.GET("/runs/:run_id/waypoints", mobileHandler.GetRunWaypoints)
 			mobile.PATCH("/runs/:run_id", mobileHandler.UpdateRunNotes)
 			mobile.GET("/stats", mobileHandler.GetStats)
 		}

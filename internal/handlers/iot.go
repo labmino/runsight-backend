@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -117,6 +118,21 @@ func (h *IoTHandler) UploadRun(c *gin.Context) {
 		return
 	}
 
+	var routeDataJSON *string
+	if len(req.RunData.Waypoints) > 0 {
+		routeData := map[string]interface{}{
+			"waypoints": req.RunData.Waypoints,
+			"summary": map[string]interface{}{
+				"total_points": len(req.RunData.Waypoints),
+			},
+		}
+		
+		if jsonData, err := json.Marshal(routeData); err == nil {
+			jsonString := string(jsonData)
+			routeDataJSON = &jsonString
+		}
+	}
+
 	run := models.Run{
 		UserID:          deviceInfo.UserID,
 		DeviceID:        req.DeviceID,
@@ -135,6 +151,7 @@ func (h *IoTHandler) UploadRun(c *gin.Context) {
 		StartLongitude:  req.RunData.StartLongitude,
 		EndLatitude:     req.RunData.EndLatitude,
 		EndLongitude:    req.RunData.EndLongitude,
+		RouteData:       routeDataJSON,
 	}
 
 	// Use transaction to ensure run and AI metrics are saved atomically
@@ -252,6 +269,21 @@ func (h *IoTHandler) BatchUploadRuns(c *gin.Context) {
 			continue
 		}
 
+		var routeDataJSON *string
+		if len(runReq.RunData.Waypoints) > 0 {
+			routeData := map[string]interface{}{
+				"waypoints": runReq.RunData.Waypoints,
+				"summary": map[string]interface{}{
+					"total_points": len(runReq.RunData.Waypoints),
+				},
+			}
+			
+			if jsonData, err := json.Marshal(routeData); err == nil {
+				jsonString := string(jsonData)
+				routeDataJSON = &jsonString
+			}
+		}
+
 		run := models.Run{
 			UserID:          deviceInfo.UserID,
 			DeviceID:        req.DeviceID,
@@ -270,6 +302,7 @@ func (h *IoTHandler) BatchUploadRuns(c *gin.Context) {
 			StartLongitude:  runReq.RunData.StartLongitude,
 			EndLatitude:     runReq.RunData.EndLatitude,
 			EndLongitude:    runReq.RunData.EndLongitude,
+			RouteData:       routeDataJSON,
 		}
 
 		tx := h.db.Begin()

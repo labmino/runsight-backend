@@ -26,6 +26,7 @@ type Run struct {
 	StartLongitude  *float64   `json:"start_longitude,omitempty" gorm:"type:decimal(11,8)" validate:"omitempty,longitude"`
 	EndLatitude     *float64   `json:"end_latitude,omitempty" gorm:"type:decimal(10,8)" validate:"omitempty,latitude"`
 	EndLongitude    *float64   `json:"end_longitude,omitempty" gorm:"type:decimal(11,8)" validate:"omitempty,longitude"`
+	RouteData       *string    `json:"route_data,omitempty" gorm:"type:text"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	
@@ -49,6 +50,7 @@ type RunCreateRequest struct {
 	StartLongitude  *float64   `json:"start_longitude,omitempty" validate:"omitempty,longitude"`
 	EndLatitude     *float64   `json:"end_latitude,omitempty" validate:"omitempty,latitude"`
 	EndLongitude    *float64   `json:"end_longitude,omitempty" validate:"omitempty,longitude"`
+	Waypoints       []WaypointData `json:"waypoints,omitempty" validate:"omitempty,dive"`
 }
 
 type RunUpdateRequest struct {
@@ -77,4 +79,11 @@ func (r *Run) BeforeCreate(tx *gorm.DB) error {
 func (r *Run) BeforeUpdate(tx *gorm.DB) error {
 	r.UpdatedAt = time.Now()
 	return nil
+}
+
+type WaypointData struct {
+	Latitude  float64   `json:"lat" validate:"required,latitude"`
+	Longitude float64   `json:"lng" validate:"required,longitude"`
+	Speed     *float64  `json:"speed,omitempty" validate:"omitempty,min=0"`
+	Timestamp time.Time `json:"timestamp" validate:"required"`
 }
