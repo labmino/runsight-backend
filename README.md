@@ -55,15 +55,44 @@ Server runs on `http://localhost:8080` with PostgreSQL database.
 - Mobile apps: `Authorization: Bearer <jwt_token>`
 - IoT devices: `Authorization: Bearer <device_token>`
 
-### Key Endpoints
+### Monitoring & Health
+- `GET /health` - Basic health check
+- `GET /health/detailed` - Detailed health with system metrics
+- `GET /ready` - Readiness probe (checks database connectivity)
+- `GET /live` - Liveness probe
+- `GET /metrics` - Application metrics (users, devices, runs, system stats)
+
+### Authentication & User Management
 - `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /mobile/pairing/request` - Mobile requests pairing code
-- `POST /iot/pairing/verify` - IoT verifies pairing code
-- `POST /iot/runs/upload` - Upload run data with AI metrics
-- `GET /mobile/runs` - Get user's run history
-- `GET /mobile/stats` - Get aggregated statistics
-- `GET /health` - Health check
+- `POST /auth/login` - User authentication
+- `GET /auth/profile` - Get user profile (requires auth)
+- `PUT /auth/profile` - Update user profile (requires auth)
+
+### Mobile App Endpoints (requires JWT auth)
+#### Device Pairing
+- `POST /mobile/pairing/request` - Request pairing code for device
+- `GET /mobile/pairing/:session_id/status` - Check pairing status
+
+#### Device Management
+- `GET /mobile/devices` - List paired devices
+- `DELETE /mobile/devices/:device_id` - Remove/unpair device
+
+#### Run Data & Analytics
+- `GET /mobile/runs` - List runs with pagination and date filtering
+- `GET /mobile/runs/:run_id` - Get detailed run information
+- `GET /mobile/runs/:run_id/waypoints` - Get run route/waypoint data
+- `PATCH /mobile/runs/:run_id` - Update run title/notes
+- `GET /mobile/stats` - Get aggregated user statistics
+
+### IoT Device Endpoints
+#### Device Pairing
+- `POST /iot/pairing/verify` - Verify pairing code and register device
+
+#### Data Upload (requires device token auth)
+- `POST /iot/runs/upload` - Upload single run with AI metrics
+- `POST /iot/runs/batch` - Batch upload multiple runs
+- `POST /iot/devices/status` - Update device status (battery, firmware)
+- `GET /iot/devices/config` - Get device configuration
 
 
 ## Development
