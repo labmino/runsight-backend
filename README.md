@@ -65,8 +65,6 @@ Server runs on `http://localhost:8080` with PostgreSQL database.
 - `GET /mobile/stats` - Get aggregated statistics
 - `GET /health` - Health check
 
-See `ARCHITECTURE.md` for detailed API documentation.
-
 
 ## Development
 
