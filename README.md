@@ -1,26 +1,34 @@
-# RunSight Backend 🏃‍♂️
+# RunSight Backend
 
-**RunSight Backend** is a REST API service built with Go that manages user data, device pairing, and run tracking for smart running devices. It provides secure authentication, device management, and data storage capabilities for IoT devices and mobile applications.
+**RunSight Backend** is a REST API service for the RunSight smart running system. It manages user authentication, device pairing, and run data for IoT devices (smart glasses) and mobile applications.
 
 ![Go](https://img.shields.io/badge/Go-1.25+-blue)
 ![Gin](https://img.shields.io/badge/Gin-v1.10-green)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## Table of Contents
+## System Overview
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [API Endpoints](#api-endpoints)
-- [Development](#development)
-- [Deployment](#deployment)
+RunSight is an autonomous IoT-first running assistance system where smart glasses provide real-time AI guidance to runners. The backend serves as the central data hub that:
+
+- Manages secure device pairing between mobile apps and IoT devices
+- Stores running sessions with AI metrics (obstacle detection, lane keeping, warnings)
+- Provides offline-first sync capabilities for IoT devices
+- Delivers personalized statistics and run history to mobile users
+
+**Core Principles:**
+- IoT devices are autonomous (runs happen without mobile connectivity)
+- Mobile apps are view-only (read history, manage devices)
+- Backend is stateless with optional real-time features
+- Offline-first with automatic sync when network is available
 
 ## Features
 
-* **User Management** – Register, log in, and manage user profiles securely.
-* **Device Pairing** – Pair mobile apps with IoT running devices seamlessly.
-* **Run Tracking** – Upload, store, and retrieve detailed running session data.
-* **Statistics API** – Get personalized running stats and performance insights easily.
+* **Secure Authentication** – JWT-based user auth and device token management
+* **Device Pairing** – 6-digit code pairing system for mobile-IoT connection
+* **Run Data Management** – Upload, store, and sync running sessions with AI metrics
+* **Statistics & Analytics** – Aggregated performance insights and history
+* **Monitoring & Health** – Health checks and structured logging
 
 
 ## Quick Start
@@ -37,53 +45,27 @@ cp .env.example .env
 go run cmd/server/main.go
 ```
 
-**Environment Variables**:
-```env
-# Server
-PORT=8080
-GIN_MODE=debug
-
-# Database
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=runsight_user
-DB_PASSWORD=runsight_password
-DB_NAME=runsight
-DB_SSL_MODE=disable
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key
-```
+Server runs on `http://localhost:8080` with PostgreSQL database.
 
 ## API Endpoints
 
 **Base URL:** `http://localhost:8080/api/v1`
 
-**Authentication:**
-- Mobile: `Authorization: Bearer <jwt_token>`
-- IoT: `Authorization: <device_token>`
+### Authentication
+- Mobile apps: `Authorization: Bearer <jwt_token>`
+- IoT devices: `Authorization: Bearer <device_token>`
 
-**Auth APIs:**
-- `POST /auth/register` - Register user
+### Key Endpoints
+- `POST /auth/register` - User registration
 - `POST /auth/login` - User login
-- `GET /auth/profile` - Get profile (JWT required)
-
-**Mobile APIs** (JWT required):
-- `POST /mobile/pairing/request` - Request pairing code
-- `GET /mobile/pairing/{id}/status` - Check pairing status
-- `GET /mobile/devices` - List paired devices
-- `GET /mobile/runs` - List runs (paginated)
-- `GET /mobile/runs/{id}` - Get run details
-- `GET /mobile/stats` - Get statistics
-
-**IoT APIs** (device token required):
-- `POST /iot/pairing/verify` - Verify pairing code
-- `POST /iot/runs/upload` - Upload run data
-- `POST /iot/runs/batch` - Batch upload runs
-- `POST /iot/devices/status` - Update device status
-
-**Monitoring:**
+- `POST /mobile/pairing/request` - Mobile requests pairing code
+- `POST /iot/pairing/verify` - IoT verifies pairing code
+- `POST /iot/runs/upload` - Upload run data with AI metrics
+- `GET /mobile/runs` - Get user's run history
+- `GET /mobile/stats` - Get aggregated statistics
 - `GET /health` - Health check
+
+See `ARCHITECTURE.md` for detailed API documentation.
 
 
 ## Development
@@ -92,15 +74,23 @@ JWT_SECRET=your-super-secret-jwt-key
 ```
 cmd/server/main.go          # Entry point
 internal/
-├── handlers/               # HTTP handlers  
-├── models/                 # Database models
-├── services/               # Business logic
-└── utils/                  # JWT, logging, responses
+├── handlers/               # HTTP handlers (auth, mobile, iot, monitoring)
+├── models/                 # Database models (user, device, run, ai_metrics)
+├── services/               # Business logic (pairing)
+├── middleware/             # Auth, rate limiting, security
+├── database/               # PostgreSQL connection and migrations
+└── utils/                  # JWT, logging, responses, error codes
+tests/                      # Unit and integration tests
 ```
 
 **Run locally:**
 ```bash
 go run cmd/server/main.go
+```
+
+**Run tests:**
+```bash
+go test ./...
 ```
 
 ## Deployment
@@ -110,7 +100,7 @@ go run cmd/server/main.go
 docker-compose up -d
 ```
 
-**Manual deployment:**
+**Production:**
 ```bash
 go build -o server cmd/server/main.go
 GIN_MODE=release ./server
